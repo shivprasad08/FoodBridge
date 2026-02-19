@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import CreateListing from './pages/CreateListing';
+import EditListing from './pages/EditListing';
 import MyListings from './pages/MyListings';
 
 function App() {
@@ -37,6 +38,15 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['provider']}>
                   <CreateListing />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/edit-listing/:id"
+              element={
+                <ProtectedRoute allowedRoles={['provider']}>
+                  <EditListing />
                 </ProtectedRoute>
               }
             />

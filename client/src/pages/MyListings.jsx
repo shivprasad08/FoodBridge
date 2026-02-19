@@ -46,6 +46,23 @@ const MyListings = () => {
     }
   };
 
+  const handleDelete = async (listingId, title) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await api.delete(`/api/listings/${listingId}`);
+      
+      if (response.data.success) {
+        // Remove from local state
+        setListings(listings.filter(l => l.id !== listingId));
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete listing');
+    }
+  };
+
   const getStatusColor = (status) => {
     const colors = {
       'Available': 'text-green-600 bg-green-50 border-green-200',
@@ -159,11 +176,7 @@ const MyListings = () => {
                         <Edit className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm('Delete this listing?')) {
-                            // TODO: Implement delete
-                          }
-                        }}
+                        onClick={() => handleDelete(listing.id, listing.title)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                         title="Delete"
                       >

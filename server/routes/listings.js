@@ -166,6 +166,202 @@ router.get('/available', authenticateUser, async (req, res, next) => {
 });
 
 /**
+ * GET /api/listings/:id
+ * Get a single listing by ID
+ */
+router.get('/:id', authenticateUser, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const dbClient = supabaseAdmin || supabase;
+
+    const { data: listing, error } = await dbClient
+      .from('food_listings')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(404).json({
+        success: false,
+        error: 'Listing not found'
+      });
+    }
+
+    // Verify ownership (only provider can view their own listing details)
+    if (listing.provider_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to view this listing'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: listing
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /api/listings/:id
+ * Update a listing (provider only)
+ */
+router.put('/:id', authenticateUser, authorizeRoles('provider'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      description,
+      quantity_kg,
+      food_type,
+      pickup_address,
+      pickup_lat,
+      pickup_lng,
+      pickup_time_start,
+      pickup_time_end,
+      special_instructions
+    } = req.body;
+
+    // Validate required fields
+    validateFields(req.body, [
+      'title',
+      'quantity_kg',
+      'pickup_address',
+      'pickup_lat',
+      'pickup_lng',
+      'pickup_time_start',
+      'pickup_time_end'
+    ]);
+
+    // Validate time window
+    validateTimeWindow(pickup_time_start, pickup_time_end);
+
+    // Validate quantity
+    if (quantity_kg <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity must be greater than 0'
+      });
+    }
+
+    // Verify ownership
+    const { data: listing } = await supabase
+      .from('food_listings')
+      .select('provider_id')
+      .eq('id', id)
+      .single();
+
+    if (!listing || listing.provider_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to update this listing'
+      });
+    }
+
+    const dbClient = supabaseAdmin || supabase;
+    const { data: updated, error } = await dbClient
+      .from('food_listings')
+      .update({
+        title,
+        description,
+        quantity_kg: parseFloat(quantity_kg),
+        food_type,
+        pickup_address,
+        pickup_lat: parseFloat(pickup_lat),
+        pickup_lng: parseFloat(pickup_lng),
+        pickup_time_start,
+        pickup_time_end,
+        special_instructions
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update listing'
+      });
+    }
+
+    await createAuditLog(
+      supabase,
+      req.user.id,
+      'LISTING_UPDATED',
+      'food_listing',
+      id,
+      { title, quantity_kg }
+    );
+
+    res.json({
+      success: true,
+      message: 'Listing updated successfully',
+      data: updated
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * DELETE /api/listings/:id
+ * Delete a listing (provider only)
+ */
+router.delete('/:id', authenticateUser, authorizeRoles('provider'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Verify ownership
+    const { data: listing } = await supabase
+      .from('food_listings')
+      .select('provider_id, title')
+      .eq('id', id)
+      .single();
+
+    if (!listing || listing.provider_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        error: 'Not authorized to delete this listing'
+      });
+    }
+
+    const dbClient = supabaseAdmin || supabase;
+    const { error } = await dbClient
+      .from('food_listings')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Database error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to delete listing'
+      });
+    }
+
+    await createAuditLog(
+      supabase,
+      req.user.id,
+      'LISTING_DELETED',
+      'food_listing',
+      id,
+      { title: listing.title }
+    );
+
+    res.json({
+      success: true,
+      message: 'Listing deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * PATCH /api/listings/:id/status
  * Update listing status
  */
