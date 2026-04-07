@@ -145,6 +145,4 @@ npm run verify
 - If DB env vars are missing, auth and DB-backed flows will fail.
 - Map rendering uses OpenStreetMap tiles and can depend on network availability.
 
-## Current Status
 
-The project is MVP-ready with major provider/recipient/admin flows implemented, plus realtime updates and map integration. For production hardening, recommended next steps are CI, automated tests, and deployment environment hardening.
