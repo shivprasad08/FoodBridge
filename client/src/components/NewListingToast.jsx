@@ -66,14 +66,14 @@ const NewListingToast = () => {
             className="flex-1 py-3 bg-primary text-white
                        text-sm font-medium rounded-lg
                        hover:bg-primary-dark transition-colors
-                       min-h-[44px] text-base">
+                       min-h-[44px]">
             Claim Now
           </button>
           <button
             onClick={() => setVisible(false)}
             className="px-4 py-3 bg-gray-100 text-gray-600
                        text-sm rounded-lg hover:bg-gray-200
-                       transition-colors min-h-[44px] text-base">
+                       transition-colors min-h-[44px]">
             Later
           </button>
         </div>

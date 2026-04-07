@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 const AuthContext = createContext({})
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 const AUTH_SESSION_KEY = 'authSession'
-const LEGACY_SESSION_KEY = 'supabaseSession'
 
 const readStoredSession = () => {
   const current = sessionStorage.getItem(AUTH_SESSION_KEY)
@@ -15,28 +14,16 @@ const readStoredSession = () => {
     }
   }
 
-  const legacy = sessionStorage.getItem(LEGACY_SESSION_KEY)
-  if (legacy) {
-    try {
-      return JSON.parse(legacy)
-    } catch {
-      return null
-    }
-  }
-
   return null
 }
 
 const persistSession = (session) => {
   const serialized = JSON.stringify(session)
   sessionStorage.setItem(AUTH_SESSION_KEY, serialized)
-  // Temporary compatibility for older data-fetch code.
-  sessionStorage.setItem(LEGACY_SESSION_KEY, serialized)
 }
 
 const clearStoredSession = () => {
   sessionStorage.removeItem(AUTH_SESSION_KEY)
-  sessionStorage.removeItem(LEGACY_SESSION_KEY)
 }
 
 export const AuthProvider = ({ children }) => {

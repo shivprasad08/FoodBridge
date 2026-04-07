@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Map, MapMarker, MarkerContent, MarkerPopup, MarkerLabel, MapControls } from '../../components/ui/map';
 import { Card } from '../../components/ui/card';
 import { useAuth } from '../../context/AuthContext';
@@ -33,8 +34,7 @@ const mapStyles = {
 
 const getStoredSession = () => {
   const authSession = sessionStorage.getItem('authSession')
-  const legacySession = sessionStorage.getItem('supabaseSession')
-  const rawSession = authSession || legacySession
+  const rawSession = authSession
 
   if (!rawSession) return null
 
@@ -46,6 +46,7 @@ const getStoredSession = () => {
 }
 
 const PostFoodForm = () => {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const geocodeTimeoutRef = useRef(null);
   const lastGeocodedAddressRef = useRef('');
@@ -214,7 +215,7 @@ const PostFoodForm = () => {
       setNotes('');
       setPickupAddress('');
       setExpiryTime('');
-      // TODO: Navigate to listings after success
+      navigate('/provider/listings');
     } catch (err) {
       setError(err?.message || 'Failed to post food listing');
       toast.error(err?.message || 'Failed to post food listing');

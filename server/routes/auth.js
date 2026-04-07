@@ -298,4 +298,67 @@ router.patch('/profile', requireAuth, async (req, res) => {
   }
 })
 
+router.patch('/password', requireAuth, async (req, res) => {
+  const { current_password, new_password } = req.body || {}
+
+  if (!current_password || !new_password) {
+    return res.status(400).json({
+      error: true,
+      message: 'current_password and new_password are required',
+    })
+  }
+
+  if (String(new_password).length < 8) {
+    return res.status(400).json({
+      error: true,
+      message: 'Password must be at least 8 characters',
+    })
+  }
+
+  try {
+    await initializeDatabase()
+
+    const result = await pool.query(
+      `SELECT id, password_hash
+       FROM app_users
+       WHERE id = $1`,
+      [req.profile.id]
+    )
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({
+        error: true,
+        message: 'User not found',
+      })
+    }
+
+    const row = result.rows[0]
+    const valid = await bcrypt.compare(current_password, row.password_hash)
+
+    if (!valid) {
+      return res.status(401).json({
+        error: true,
+        message: 'Current password is incorrect',
+      })
+    }
+
+    const passwordHash = await bcrypt.hash(new_password, 10)
+
+    await pool.query(
+      `UPDATE app_users
+       SET password_hash = $1,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [passwordHash, req.profile.id]
+    )
+
+    res.json({
+      error: false,
+      message: 'Password updated successfully',
+    })
+  } catch (err) {
+    res.status(500).json({ error: true, message: err.message })
+  }
+})
+
 module.exports = router

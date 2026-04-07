@@ -104,7 +104,7 @@ const AdminSidebar = () => {
               to={item.path}
               onClick={() => setMoreOpen(false)}
               className={({ isActive }) =>
-                `block rounded-lg px-4 py-3 text-sm font-medium transition-colors min-h-[44px] flex items-center gap-3 ${
+                `rounded-lg px-4 py-3 text-sm font-medium transition-colors min-h-[44px] flex items-center gap-3 ${
                   isActive
                     ? 'bg-green-50 text-green-700'
                     : 'text-gray-700 hover:bg-gray-50'
@@ -118,13 +118,11 @@ const AdminSidebar = () => {
               handleSignOut()
               setMoreOpen(false)
             }}
-            className="w-full block rounded-lg px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors min-h-[44px] text-left">
+            className="w-full rounded-lg px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors min-h-[44px] text-left">
             Logout
           </button>
         </nav>
       </SlideUpDrawer>
-
-      {/* ── MOBILE SPACER ── prevents content behind bottom nav */}
       <div className="md:hidden h-20 flex-shrink-0" />
     </>
   )

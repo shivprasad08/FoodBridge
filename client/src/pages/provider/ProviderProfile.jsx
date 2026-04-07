@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../lib/api';
+import { useToast } from '../../context/ToastContext';
 
 const ProviderProfile = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
   const [address, setAddress] = useState(profile?.address || '');
@@ -13,25 +16,32 @@ const ProviderProfile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  useEffect(() => {
+    setFullName(profile?.full_name || '');
+    setPhone(profile?.phone || '');
+    setAddress(profile?.address || '');
+  }, [profile]);
+
   const handleProfileSave = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess('');
     try {
-      const session = JSON.parse(sessionStorage.getItem('supabaseSession'));
-      const res = await fetch('https://your-supabase-url.supabase.co/rest/v1/profiles', {
+      const payload = await apiFetch('/api/auth/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`
         },
-        body: JSON.stringify({ full_name: fullName, phone, address })
+        body: JSON.stringify({ full_name: fullName, phone, address }),
       });
-      if (!res.ok) throw new Error('Failed to update profile');
+
+      updateProfile(payload.data.profile);
       setSuccess('Profile updated!');
+      toast.success('Profile updated successfully.');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to update profile');
+      toast.error(err.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -48,10 +58,21 @@ const ProviderProfile = () => {
       return;
     }
     try {
-      // TODO: Use supabase.auth.updateUser({ password: newPassword })
+      await apiFetch('/api/auth/password', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
       setSuccess('Password updated!');
+      toast.success('Password updated successfully.');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to update password');
+      toast.error(err.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }

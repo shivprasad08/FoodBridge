@@ -4,7 +4,8 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "check": "node -e \"require('./routes/auth'); require('./routes/listings'); require('./routes/tasks'); require('./services/matchingService'); console.log('server-check-ok')\""
   },
   "dependencies": {
     "express": "^4.18.2",

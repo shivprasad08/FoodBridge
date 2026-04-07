@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetch } from '../../lib/api';
 
 const ListingHistory = () => {
   const { profile } = useAuth();
@@ -11,14 +12,7 @@ const ListingHistory = () => {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const session = JSON.parse(sessionStorage.getItem('supabaseSession'));
-        const res = await fetch('http://localhost:3001/api/listings', {
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.message);
+        const data = await apiFetch('/api/listings');
         setListings((data.data || []).filter(l => ['completed','cancelled'].includes(l.status)));
       } catch (err) {
         setError(err.message);

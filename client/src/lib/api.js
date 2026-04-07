@@ -6,7 +6,7 @@ const API_BASE =
 const getStoredSession = () => {
   const modern = sessionStorage.getItem('authSession')
   if (modern) return modern
-  return sessionStorage.getItem('supabaseSession')
+  return null
 }
 
 export const getAuthToken = () => {
