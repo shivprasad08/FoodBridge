@@ -4,13 +4,17 @@ import { apiFetch } from '../../lib/api'
 
 const RecipientProfile = () => {
   const { profile, updateProfile } = useAuth()
+  const initialReceivingHours = typeof profile?.receiving_hours === 'string'
+    ? profile.receiving_hours
+    : ''
+
   const [form, setForm] = useState(() => ({
     full_name: profile?.full_name || '',
     phone: profile?.phone || '',
     address: profile?.address || '',
     lat: profile?.lat || '',
     lng: profile?.lng || '',
-    receiving_hours: profile?.receiving_hours || '',
+    receiving_hours: initialReceivingHours,
   }))
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -29,12 +33,23 @@ const RecipientProfile = () => {
       setError('')
       setMessage('')
 
+      const trimmedHours = String(form.receiving_hours || '').trim()
+      let receivingHoursPayload = null
+      if (trimmedHours) {
+        try {
+          receivingHoursPayload = JSON.parse(trimmedHours)
+        } catch {
+          receivingHoursPayload = null
+        }
+      }
+
       const payload = await apiFetch('/api/auth/profile', {
         method: 'PATCH',
         body: JSON.stringify({
           ...form,
           lat: form.lat === '' ? null : Number(form.lat),
           lng: form.lng === '' ? null : Number(form.lng),
+          receiving_hours: receivingHoursPayload,
         }),
       })
 

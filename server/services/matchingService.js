@@ -41,6 +41,20 @@ const findAndNotifyNearbyNGOs = async (listing, radiusKm = 10) => {
   try {
     await initializeDatabase()
 
+    const providerRes = await pool.query(
+      `SELECT lat, lng FROM app_users WHERE id = $1 LIMIT 1`,
+      [listing.provider_id]
+    )
+
+    const providerCoords = providerRes.rows[0] || {}
+    const sourceLat = Number(providerCoords.lat ?? listing.pickup_lat)
+    const sourceLng = Number(providerCoords.lng ?? listing.pickup_lng)
+
+    if (!Number.isFinite(sourceLat) || !Number.isFinite(sourceLng)) {
+      console.log('[Matching] Skipping match: missing provider/listing coordinates')
+      return []
+    }
+
     const ngoResult = await pool.query(
       `SELECT id, full_name, phone, lat, lng, receiving_hours
        FROM app_users
@@ -61,8 +75,8 @@ const findAndNotifyNearbyNGOs = async (listing, radiusKm = 10) => {
       .map((ngo) => ({
         ...ngo,
         distance: haversineDistance(
-          Number(listing.pickup_lat),
-          Number(listing.pickup_lng),
+          sourceLat,
+          sourceLng,
           Number(ngo.lat),
           Number(ngo.lng)
         ),

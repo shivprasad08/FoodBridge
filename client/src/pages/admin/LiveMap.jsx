@@ -1,117 +1,158 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import useRealtime from '../../hooks/useRealtime'
 import useAdminData from '../../hooks/useAdminData'
+import { Map, MapMarker, MarkerContent, MarkerPopup } from '../../components/ui/map'
 
-const mapStyles = [
-  { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
-  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
-]
+const osmStyle = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-tiles',
+      type: 'raster',
+      source: 'osm',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+}
+
+const PUNE_CENTER = { lat: 18.5204, lng: 73.8567 }
+
+const distanceToPune = (lat, lng) => {
+  const dLat = lat - PUNE_CENTER.lat
+  const dLng = lng - PUNE_CENTER.lng
+  return Math.sqrt((dLat * dLat) + (dLng * dLng))
+}
+
+const normalizeCoords = (latRaw, lngRaw) => {
+  const lat = Number(latRaw)
+  const lng = Number(lngRaw)
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+  const asIsValid = Math.abs(lat) <= 90 && Math.abs(lng) <= 180
+  const swappedValid = Math.abs(lng) <= 90 && Math.abs(lat) <= 180
+
+  if (!asIsValid && !swappedValid) return null
+  if (asIsValid && !swappedValid) return { lat, lng }
+  if (!asIsValid && swappedValid) return { lat: lng, lng: lat }
+
+  // If both are technically valid, prefer the orientation closer to our operating region.
+  const asIsDist = distanceToPune(lat, lng)
+  const swappedDist = distanceToPune(lng, lat)
+  return swappedDist < asIsDist ? { lat: lng, lng: lat } : { lat, lng }
+}
+
+const geocodeAddress = async (address) => {
+  if (!address || typeof window === 'undefined') return null
+
+  const key = `ngo-geocode:${address.trim().toLowerCase()}`
+  const cached = window.sessionStorage.getItem(key)
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached)
+      if (Number.isFinite(parsed?.lat) && Number.isFinite(parsed?.lng)) {
+        return parsed
+      }
+    } catch {
+      window.sessionStorage.removeItem(key)
+    }
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`
+    const response = await fetch(url)
+    if (!response.ok) return null
+
+    const payload = await response.json()
+    if (!Array.isArray(payload) || payload.length === 0) return null
+
+    const lat = Number(payload[0].lat)
+    const lng = Number(payload[0].lon)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+    const value = { lat, lng }
+    window.sessionStorage.setItem(key, JSON.stringify(value))
+    return value
+  } catch {
+    return null
+  }
+}
 
 const LiveMap = () => {
-  const mapRef = useRef(null)
-  const mapInstance = useRef(null)
-  const listingMarkers = useRef({})
-  const ngoMarkers = useRef({})
-  const [listings, setListings] = useState([])
   const [ngos, setNgos] = useState([])
-  const { refetchListings, refetchUsers, users, listings: allListings } = useAdminData()
-
-  const hasGoogleMap = typeof window !== 'undefined' && window.google?.maps
-
-  const clearMarkers = (group) => {
-    Object.values(group.current).forEach(marker => marker.setMap(null))
-    Object.keys(group.current).forEach(key => delete group.current[key])
-  }
-
-  const placeFoodMarkers = (rows) => {
-    if (!mapInstance.current || !hasGoogleMap) return
-    clearMarkers(listingMarkers)
-
-    rows.forEach(listing => {
-      const marker = new window.google.maps.Marker({
-        position: { lat: Number(listing.pickup_lat), lng: Number(listing.pickup_lng) },
-        map: mapInstance.current,
-        title: listing.title,
-        icon: { url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png' },
-      })
-
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `<div><strong>${listing.title}</strong><br/>${listing.quantity}<br/><span style="color:#16a34a">Available</span></div>`,
-      })
-      marker.addListener('click', () => infoWindow.open(mapInstance.current, marker))
-      listingMarkers.current[listing.id] = marker
-    })
-  }
-
-  const placeNgoMarkers = (rows) => {
-    if (!mapInstance.current || !hasGoogleMap) return
-    clearMarkers(ngoMarkers)
-
-    rows.forEach(ngo => {
-      const marker = new window.google.maps.Marker({
-        position: { lat: Number(ngo.lat), lng: Number(ngo.lng) },
-        map: mapInstance.current,
-        title: ngo.full_name,
-        icon: { url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' },
-      })
-
-      const infoWindow = new window.google.maps.InfoWindow({
-        content: `<div><strong>${ngo.full_name}</strong><br/><span style="color:#1d4ed8">NGO</span></div>`,
-      })
-      marker.addListener('click', () => infoWindow.open(mapInstance.current, marker))
-      ngoMarkers.current[ngo.id] = marker
-    })
-  }
+  const { refetchUsers, users } = useAdminData()
 
   useEffect(() => {
-    if (!hasGoogleMap || !mapRef.current) return
-
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 18.5204, lng: 73.8567 },
-      zoom: 12,
-      styles: mapStyles,
-    })
-  }, [hasGoogleMap])
+    refetchUsers({ role: 'recipient', limit: 300, offset: 0 }).catch(() => {})
+  }, [refetchUsers])
 
   useEffect(() => {
-    refetchListings({ status: 'available', limit: 300, offset: 0 }).catch(() => {})
-    refetchUsers({ role: 'recipient', verified: true, limit: 300, offset: 0 }).catch(() => {})
-  }, [refetchListings, refetchUsers])
+    let cancelled = false
 
-  useEffect(() => {
-    const activeListings = (allListings || []).filter(item => item.status === 'available')
-    setListings(activeListings)
-    placeFoodMarkers(activeListings)
-  }, [allListings])
+    const resolveNgos = async () => {
+      const recipients = (users || []).filter(item => item.role === 'recipient')
 
-  useEffect(() => {
-    const ngoRows = (users || []).filter(item => item.role === 'recipient' && item.is_verified && item.lat && item.lng)
-    setNgos(ngoRows)
-    placeNgoMarkers(ngoRows)
+      const resolved = await Promise.all(recipients.map(async (item) => {
+        const normalized = normalizeCoords(item.lat, item.lng)
+        const geocoded = await geocodeAddress(item.address)
+        const finalCoords = geocoded || normalized
+
+        if (!finalCoords) return null
+        return { ...item, lat: finalCoords.lat, lng: finalCoords.lng }
+      }))
+
+      if (!cancelled) {
+        setNgos(resolved.filter(Boolean))
+      }
+    }
+
+    resolveNgos()
+    return () => {
+      cancelled = true
+    }
   }, [users])
 
-  useRealtime('food_listings', 'INSERT', (payload) => {
-    if (payload.new?.status === 'available') {
-      refetchListings({ status: 'available', limit: 300, offset: 0 }).catch(() => {})
+  useRealtime('app_users', 'INSERT', (payload) => {
+    if (payload.new?.role === 'recipient') {
+      refetchUsers({ role: 'recipient', limit: 300, offset: 0 }).catch(() => {})
     }
   })
 
-  useRealtime('food_listings', 'UPDATE', () => {
-    refetchListings({ status: 'available', limit: 300, offset: 0 }).catch(() => {})
+  useRealtime('app_users', 'UPDATE', (payload) => {
+    if (payload.new?.role === 'recipient' || payload.old?.role === 'recipient') {
+      refetchUsers({ role: 'recipient', limit: 300, offset: 0 }).catch(() => {})
+    }
   })
 
-  const legend = useMemo(() => `${listings.length} active listings | ${ngos.length} NGOs`, [listings.length, ngos.length])
+  const legend = useMemo(() => `${ngos.length} NGOs`, [ngos.length])
+  const ngosWithCoords = ngos.filter(item => Number.isFinite(Number(item.lat)) && Number.isFinite(Number(item.lng)))
 
-  if (!hasGoogleMap) {
-    return (
-      <section className="p-6">
-        <h1 className="text-xl font-semibold text-gray-800">Live Map</h1>
-        <p className="mt-2 text-sm text-gray-500">Google Maps is not available in this environment. Configure the Maps script key to enable map rendering.</p>
-      </section>
-    )
-  }
+  const mapCenter = useMemo(() => {
+    if (!ngosWithCoords.length) return [73.8567, 18.5204]
+
+    const totals = ngosWithCoords.reduce((acc, item) => {
+      acc.lat += Number(item.lat)
+      acc.lng += Number(item.lng)
+      return acc
+    }, { lat: 0, lng: 0 })
+
+    return [totals.lng / ngosWithCoords.length, totals.lat / ngosWithCoords.length]
+  }, [ngosWithCoords])
+
+  const mapZoom = ngosWithCoords.length <= 1 ? 13 : 11
 
   return (
     <div className="flex h-full flex-col">
@@ -121,11 +162,40 @@ const LiveMap = () => {
           <p className="text-sm text-gray-500">{legend}</p>
         </div>
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span><span className="mr-1 inline-block h-3 w-3 rounded-full bg-green-500" />Food</span>
           <span><span className="mr-1 inline-block h-3 w-3 rounded-full bg-blue-500" />NGO</span>
         </div>
       </div>
-      <div ref={mapRef} className="flex-1" />
+      <div className="flex-1 min-h-[420px]">
+        <Map
+          key={`${mapCenter[0]}-${mapCenter[1]}-${ngosWithCoords.length}`}
+          className="h-full w-full"
+          center={mapCenter}
+          zoom={mapZoom}
+          theme="light"
+          styles={{
+            light: osmStyle,
+            dark: osmStyle,
+          }}
+        >
+          {ngosWithCoords.map(item => (
+            <MapMarker
+              key={`ngo-${item.id}`}
+              longitude={Number(item.lng)}
+              latitude={Number(item.lat)}
+            >
+              <MarkerContent>
+                <div className="h-5 w-5 rounded-full border-2 border-white bg-blue-500 shadow" />
+              </MarkerContent>
+              <MarkerPopup>
+                <div className="max-w-[220px] text-sm">
+                  <p className="font-semibold text-gray-800">{item.full_name}</p>
+                  <p className="mt-1 text-blue-600">NGO</p>
+                </div>
+              </MarkerPopup>
+            </MapMarker>
+          ))}
+        </Map>
+      </div>
     </div>
   )
 }

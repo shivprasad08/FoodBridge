@@ -214,7 +214,7 @@ router.get('/me', async (req, res) => {
     await initializeDatabase()
 
     const result = await pool.query(
-      `SELECT id, email, full_name, role, phone, address, is_verified
+      `SELECT id, email, full_name, role, phone, address, lat, lng, receiving_hours, is_verified
        FROM app_users
        WHERE id = $1`,
       [payload.sub]
@@ -247,6 +247,19 @@ router.get('/me', async (req, res) => {
 router.patch('/profile', requireAuth, async (req, res) => {
   const { full_name, phone, address, lat, lng, receiving_hours } = req.body || {}
 
+  let receivingHoursValue = null
+  if (receiving_hours === null || receiving_hours === undefined || receiving_hours === '') {
+    receivingHoursValue = null
+  } else if (typeof receiving_hours === 'object') {
+    receivingHoursValue = receiving_hours
+  } else if (typeof receiving_hours === 'string') {
+    try {
+      receivingHoursValue = JSON.parse(receiving_hours)
+    } catch {
+      receivingHoursValue = null
+    }
+  }
+
   try {
     await initializeDatabase()
 
@@ -257,7 +270,7 @@ router.patch('/profile', requireAuth, async (req, res) => {
            address = COALESCE($3, address),
            lat = COALESCE($4, lat),
            lng = COALESCE($5, lng),
-           receiving_hours = COALESCE($6, receiving_hours),
+           receiving_hours = COALESCE($6::jsonb, receiving_hours),
            updated_at = NOW()
        WHERE id = $7
        RETURNING id, email, full_name, role, phone, address, lat, lng, receiving_hours, is_verified`,
@@ -267,7 +280,7 @@ router.patch('/profile', requireAuth, async (req, res) => {
         address ?? null,
         lat ?? null,
         lng ?? null,
-        receiving_hours ?? null,
+        receivingHoursValue,
         req.profile.id,
       ]
     )

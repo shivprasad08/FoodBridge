@@ -1,11 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Map, MapMarker, MarkerContent } from '../../components/ui/map';
+import { Map, MapMarker, MarkerContent, MarkerPopup, MarkerLabel, MapControls } from '../../components/ui/map';
 import { Card } from '../../components/ui/card';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/PageHeader';
 import { useToast } from '../../context/ToastContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const mapStyles = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-tiles',
+      type: 'raster',
+      source: 'osm',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
+
 const getStoredSession = () => {
   const authSession = sessionStorage.getItem('authSession')
   const legacySession = sessionStorage.getItem('supabaseSession')
@@ -42,6 +67,18 @@ const PostFoodForm = () => {
   const { toast } = useToast();
 
   // MapCN integration for map preview and location selection
+
+  const handleLocate = ({ longitude, latitude }) => {
+    setPickupLng(longitude);
+    setPickupLat(latitude);
+    setAddressHint('Using your current location. Adjust by dragging the pin if needed.');
+  };
+
+  const handleMarkerDragEnd = ({ lng, lat }) => {
+    setPickupLng(lng);
+    setPickupLat(lat);
+    setAddressHint('Pin updated manually.');
+  };
 
   useEffect(() => {
     if (geocodeTimeoutRef.current) {
@@ -233,6 +270,8 @@ const PostFoodForm = () => {
           {/* Advanced MapCN map preview and location picker */}
           <Card className="w-full h-48 md:h-64 p-0 overflow-hidden mt-2 rounded-lg">
             <Map
+              theme="light"
+              styles={{ light: mapStyles, dark: mapStyles }}
               viewport={{ center: [pickupLng || 73.7997, pickupLat || 18.6298], zoom: 14 }}
               onViewportChange={({ center }) => {
                 setPickupLng(center[0]);
@@ -240,11 +279,38 @@ const PostFoodForm = () => {
               }}
               loading={false}
             >
-              <MapMarker longitude={pickupLng || 73.7997} latitude={pickupLat || 18.6298}>
-                <MarkerContent />
+              <MapControls
+                position="bottom-right"
+                showZoom
+                showLocate
+                onLocate={handleLocate}
+              />
+
+              <MapMarker
+                longitude={pickupLng || 73.7997}
+                latitude={pickupLat || 18.6298}
+                draggable
+                onDragEnd={handleMarkerDragEnd}
+              >
+                <MarkerContent>
+                  <div className="relative h-5 w-5 rounded-full border-2 border-white bg-blue-500 shadow">
+                    <div className="absolute -inset-1 rounded-full border border-blue-300/70" />
+                  </div>
+                  <MarkerLabel position="top">Pickup Point</MarkerLabel>
+                </MarkerContent>
+                <MarkerPopup>
+                  <div className="text-xs text-gray-700">
+                    <p className="font-semibold text-gray-900">Pickup location</p>
+                    <p>Lat: {Number(pickupLat || 0).toFixed(6)}</p>
+                    <p>Lng: {Number(pickupLng || 0).toFixed(6)}</p>
+                  </div>
+                </MarkerPopup>
               </MapMarker>
             </Map>
           </Card>
+          <p className="mt-2 text-xs text-gray-500">
+            Drag the pin or use locate to set exact pickup coordinates: {Number(pickupLat || 0).toFixed(6)}, {Number(pickupLng || 0).toFixed(6)}
+          </p>
         </div>
         {/* Expiry time */}
         <div>

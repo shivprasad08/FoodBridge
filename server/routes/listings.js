@@ -149,14 +149,17 @@ router.post('/', requireAuth, requireRole('provider'), async (req, res) => {
       )
     }
 
-    findAndNotifyNearbyNGOs(newListing).catch((err) =>
+    let matchedNGOs = []
+    try {
+      matchedNGOs = await findAndNotifyNearbyNGOs(newListing)
+    } catch (err) {
       console.error('[Listings] Matching error:', err.message)
-    )
+    }
 
     res.status(201).json({
       data: newListing,
       error: false,
-      message: 'Listing created. Notifying nearby NGOs.',
+      message: `Listing created. Notified ${matchedNGOs.length} nearby NGOs.`,
     })
   } catch (err) {
     res.status(500).json({ error: true, message: err.message })
