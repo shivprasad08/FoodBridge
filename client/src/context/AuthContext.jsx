@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
 const AuthContext = createContext({})
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:3001' : '')
 const AUTH_SESSION_KEY = 'authSession'
 
 const readStoredSession = () => {

@@ -22,8 +22,22 @@ const allowedOrigins = (process.env.CORS_ORIGINS ||
   .map(origin => origin.trim())
   .filter(Boolean)
 
+const vercelOriginPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i
+
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true)
+      return
+    }
+
+    if (allowedOrigins.includes(origin) || vercelOriginPattern.test(origin)) {
+      callback(null, true)
+      return
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`))
+  },
   credentials: true
 }))
 app.use(express.json())
