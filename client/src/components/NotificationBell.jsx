@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useNotifications from '../hooks/useNotifications'
 import EmptyState from './EmptyState'
@@ -6,6 +6,7 @@ import { NotificationSkeleton } from './Skeleton'
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false)
+  const dropdownRef = useRef(null)
   const navigate = useNavigate()
   const {
     notifications,
@@ -16,13 +17,14 @@ const NotificationBell = () => {
   } = useNotifications()
 
   return (
-    <div className="relative">
+    <div className="relative z-50">
 
       {/* Bell button with badge */}
       <button
         onClick={() => setOpen(!open)}
         className="relative p-2 rounded-full hover:bg-gray-100
-                   transition-colors">
+                   transition-colors min-h-[44px] min-w-[44px]
+                   flex items-center justify-center">
         {/* Bell SVG icon */}
         <svg className="w-6 h-6 text-gray-600" fill="none"
           viewBox="0 0 24 24" stroke="currentColor">
@@ -46,24 +48,30 @@ const NotificationBell = () => {
         )}
       </button>
 
-      {/* Dropdown panel */}
+      {/* Dropdown panel - both mobile and desktop */}
       {open && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop - mobile only */}
           <div
-            className="fixed inset-0 z-10"
+            className="md:hidden fixed inset-0 z-10"
             onClick={() => setOpen(false)}
           />
 
-          {/* Panel */}
-          <div className="absolute right-0 top-12 w-80
-                          bg-white rounded-xl shadow-lg
-                          border border-gray-100 z-20
-                          max-h-96 overflow-y-auto">
+          {/* Panel - appears below button, constrained on mobile */}
+          <div
+            ref={dropdownRef}
+            className="absolute top-full mt-2 z-20
+                      w-72 md:w-80
+                      -right-60 md:right-0
+                      bg-white shadow-lg md:shadow-xl rounded-lg
+                      border border-gray-100
+                      overflow-hidden
+                      max-h-96">
 
             {/* Header */}
             <div className="flex items-center justify-between
-                            px-4 py-3 border-b border-gray-100">
+                            px-4 py-3 border-b border-gray-100
+                            bg-white sticky top-0 z-10">
               <h3 className="font-medium text-gray-800">
                 Notifications
               </h3>
@@ -71,38 +79,40 @@ const NotificationBell = () => {
                 <button
                   onClick={markAllAsRead}
                   className="text-xs text-primary
-                             hover:underline">
+                             hover:underline min-h-[44px]">
                   Mark all read
                 </button>
               )}
             </div>
 
-            {/* Notification list */}
-            {loading ? (
-              <div>
-                {[...Array(3)].map((_, index) => (
-                  <NotificationSkeleton key={index} />
-                ))}
-              </div>
-            ) : notifications.length === 0 ? (
-              <EmptyState
-                icon="Bell"
-                title="No notifications yet"
-                description="You'll be notified when food is posted near you."
-              />
-            ) : (
-              notifications.map(notif => (
-                <NotificationItem
-                  key={notif.id}
-                  notification={notif}
-                  onRead={() => markAsRead(notif.id)}
-                  onNavigate={(path) => {
-                    setOpen(false)
-                    navigate(path)
-                  }}
+            {/* Notification list - scrollable */}
+            <div className="max-h-80 overflow-y-auto">
+              {loading ? (
+                <div>
+                  {[...Array(3)].map((_, index) => (
+                    <NotificationSkeleton key={index} />
+                  ))}
+                </div>
+              ) : notifications.length === 0 ? (
+                <EmptyState
+                  icon="Bell"
+                  title="No notifications yet"
+                  description="You'll be notified when food is posted near you."
                 />
-              ))
-            )}
+              ) : (
+                notifications.map(notif => (
+                  <NotificationItem
+                    key={notif.id}
+                    notification={notif}
+                    onRead={() => markAsRead(notif.id)}
+                    onNavigate={(path) => {
+                      setOpen(false)
+                      navigate(path)
+                    }}
+                  />
+                ))
+              )}
+            </div>
           </div>
         </>
       )}
@@ -113,13 +123,13 @@ const NotificationBell = () => {
 // Individual notification row
 const NotificationItem = ({ notification, onRead, onNavigate }) => {
   const icons = {
-    new_listing:     '🍛',
-    listing_claimed: '🔵',
-    picked_up:       '🚗',
-    delivered:       '📦',
-    confirmed:       '✅',
-    listing_expired: '⏰',
-    account_verified:'✅',
+    new_listing:     'Food',
+    listing_claimed: 'Claimed',
+    picked_up:       'Car',
+    delivered:       'Box',
+    confirmed:       'Check',
+    listing_expired: 'Clock',
+    account_verified:'Check',
   }
 
   const handleClick = () => {
@@ -135,11 +145,11 @@ const NotificationItem = ({ notification, onRead, onNavigate }) => {
       onClick={handleClick}
       className={`px-4 py-3 border-b border-gray-50
                   cursor-pointer hover:bg-gray-50
-                  transition-colors
+                  transition-colors min-h-[44px] flex items-center
                   ${!notification.is_read ? 'bg-green-50' : ''}`}>
-      <div className="flex gap-3">
-        <span className="text-lg flex-shrink-0">
-          {icons[notification.type] || '🔔'}
+      <div className="flex gap-3 flex-1">
+        <span className="text-base flex-shrink-0 font-medium text-gray-500">
+          {icons[notification.type] || 'Bell'}
         </span>
         <div className="flex-1 min-w-0">
           <p className={`text-sm leading-snug

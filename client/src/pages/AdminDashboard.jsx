@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ErrorBoundary from '../components/ErrorBoundary'
 import AdminSidebar from '../components/AdminSidebar'
+import MobileHeader from '../components/MobileHeader'
 import AdminOverview from './admin/AdminOverview'
 import UserManagement from './admin/UserManagement'
 import ListingsAdmin from './admin/ListingsAdmin'
@@ -11,9 +12,10 @@ import AuditLog from './admin/AuditLog'
 import AdminProfile from './admin/AdminProfile'
 
 const AdminDashboard = () => (
-  <div className="flex h-screen bg-gray-50">
+  <div className="flex flex-col md:flex-row h-screen bg-gray-50">
     <AdminSidebar />
-    <main className="flex-1 overflow-auto pb-16 md:pb-0">
+    <main className="flex-1 overflow-auto pb-0 flex flex-col">
+      <MobileHeader title="Admin" />
       <ErrorBoundary>
         <Routes>
           <Route path="dashboard" element={<AdminOverview />} />

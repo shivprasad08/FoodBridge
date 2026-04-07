@@ -11,6 +11,7 @@ const notificationsRouter = require('./routes/notifications')
 const uploadsRouter  = require('./routes/uploads')
 const adminRouter = require('./routes/admin')
 const { initializeDatabase } = require('./db/neon')
+const { startExpiryJob } = require('./jobs/expireListings')
 
 const app  = express()
 const PORT = process.env.PORT || 3001
@@ -58,6 +59,9 @@ const startServer = async () => {
   } catch (err) {
     console.error('[DB] Schema initialization failed:', err.message)
   }
+
+  // Start background jobs
+  startExpiryJob()
 
   app.listen(PORT, () => {
     console.log(`FoodBridge server running on port ${PORT}`)

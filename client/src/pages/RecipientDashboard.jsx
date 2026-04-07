@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import RecipientSidebar from '../components/RecipientSidebar'
+import MobileHeader from '../components/MobileHeader'
 import RecipientHome from './recipient/RecipientHome'
 import BrowseListings from './recipient/BrowseListings'
 import ListingDetailNGO from './recipient/ListingDetailNGO'
@@ -11,9 +12,10 @@ import ErrorBoundary from '../components/ErrorBoundary'
 
 const RecipientDashboard = () => {
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-50">
       <RecipientSidebar />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-0 flex flex-col">
+        <MobileHeader title="Recipient" />
         <ErrorBoundary>
           <Routes>
             <Route path="home" element={<RecipientHome />} />
