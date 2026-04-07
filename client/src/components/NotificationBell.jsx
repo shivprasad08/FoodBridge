@@ -57,12 +57,15 @@ const NotificationBell = () => {
             onClick={() => setOpen(false)}
           />
 
-          {/* Panel - appears below button, constrained on mobile */}
+          {/* Panel - fixed on mobile (breaks out of parent), absolute on desktop */}
           <div
             ref={dropdownRef}
-            className="absolute top-full mt-2 z-20
-                      w-72 md:w-80
-                      -right-60 md:right-0
+            className="fixed md:absolute
+                      bottom-20 md:bottom-auto md:top-full
+                      left-4 right-4 md:left-auto md:right-0
+                      md:mt-2
+                      z-20
+                      w-auto md:w-80
                       bg-white shadow-lg md:shadow-xl rounded-lg
                       border border-gray-100
                       overflow-hidden
