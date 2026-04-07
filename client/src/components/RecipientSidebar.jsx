@@ -1,13 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { House, ClipboardList, ShoppingCart, History, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import NotificationBell from './NotificationBell'
 
 const navItems = [
-  { to: '/recipient/home', label: 'Dashboard', icon: '🏠' },
-  { to: '/recipient/browse', label: 'Browse', icon: '📋' },
-  { to: '/recipient/pickups', label: 'Pickups', icon: '🛒' },
-  { to: '/recipient/history', label: 'History', icon: '🕘' },
-  { to: '/recipient/profile', label: 'Profile', icon: '👤' },
+  { to: '/recipient/home', label: 'Dashboard', icon: House },
+  { to: '/recipient/browse', label: 'Browse', icon: ClipboardList },
+  { to: '/recipient/pickups', label: 'Pickups', icon: ShoppingCart },
+  { to: '/recipient/history', label: 'History', icon: History },
+  { to: '/recipient/profile', label: 'Profile', icon: User },
 ]
 
 const RecipientSidebar = () => {
@@ -45,12 +46,12 @@ const RecipientSidebar = () => {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px] flex items-center gap-2 ${
+                `rounded-lg px-3 py-2.5 text-sm font-medium transition-colors min-h-[44px] flex items-center gap-2 ${
                   isActive
                     ? 'bg-green-50 text-green-700'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}>
-              <span className="text-lg">{item.icon}</span>
+              <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               {item.label}
             </NavLink>
           ))}
@@ -76,7 +77,7 @@ const RecipientSidebar = () => {
                     ? 'text-green-700'
                     : 'text-gray-500'
                 }`}>
-              <span className="text-xl mb-0.5">{item.icon}</span>
+              <item.icon className="mb-0.5 h-5 w-5" aria-hidden="true" />
               <span className="truncate px-1">{item.label}</span>
             </NavLink>
           ))}

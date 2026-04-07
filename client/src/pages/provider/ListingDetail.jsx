@@ -7,6 +7,32 @@ import TaskStatusBar from '../../components/TaskStatusBar'
 import StatusBadge from '../../components/StatusBadge'
 import PageHeader from '../../components/PageHeader'
 import SkeletonBox from '../../components/Skeleton'
+import { Map, MapControls, MapMarker, MarkerContent, MarkerLabel, MarkerPopup } from '../../components/ui/map'
+
+const mapStyles = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: [
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors',
+    },
+  },
+  layers: [
+    {
+      id: 'osm-tiles',
+      type: 'raster',
+      source: 'osm',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+}
 
 const ListingDetail = () => {
   const { listingId } = useParams()
@@ -14,6 +40,8 @@ const ListingDetail = () => {
   const [task, setTask] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [pickupLat, setPickupLat] = useState(18.6298)
+  const [pickupLng, setPickupLng] = useState(73.7997)
 
   const loadListing = useCallback(async () => {
     try {
@@ -44,6 +72,66 @@ const ListingDetail = () => {
       setListing(prev => ({ ...(prev || {}), ...payload.new }))
     }
   })
+
+  useEffect(() => {
+    if (!listing) return
+
+    const rawLat = listing.pickup_lat ?? listing.lat
+    const rawLng = listing.pickup_lng ?? listing.lng
+    const lat = rawLat === null || rawLat === undefined || rawLat === '' ? NaN : Number(rawLat)
+    const lng = rawLng === null || rawLng === undefined || rawLng === '' ? NaN : Number(rawLng)
+
+    const isLatValid = Number.isFinite(lat) && Math.abs(lat) <= 90
+    const isLngValid = Number.isFinite(lng) && Math.abs(lng) <= 180
+
+    if (isLatValid && isLngValid) {
+      setPickupLat(lat)
+      setPickupLng(lng)
+      return
+    }
+
+    // Handle historical rows where latitude/longitude were stored in swapped columns.
+    const canSwap = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lng) <= 90 && Math.abs(lat) <= 180
+    if (canSwap) {
+      setPickupLat(lng)
+      setPickupLng(lat)
+      return
+    }
+
+    const address = listing.pickup_address?.trim()
+    if (!address) return
+
+    let active = true
+    const geocode = async () => {
+      try {
+        const searchParams = new URLSearchParams({
+          format: 'jsonv2',
+          limit: '1',
+          q: address,
+        })
+
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?${searchParams.toString()}`, {
+          headers: { Accept: 'application/json' },
+        })
+        const results = await response.json()
+        if (!active || !Array.isArray(results) || results.length === 0) return
+
+        const nextLat = Number(results[0].lat)
+        const nextLng = Number(results[0].lon)
+        if (Number.isFinite(nextLat) && Number.isFinite(nextLng) && Math.abs(nextLat) <= 90 && Math.abs(nextLng) <= 180) {
+          setPickupLat(nextLat)
+          setPickupLng(nextLng)
+        }
+      } catch {
+        // Keep default map center if geocoding fails.
+      }
+    }
+
+    geocode()
+    return () => {
+      active = false
+    }
+  }, [listing])
 
   const status = task?.status || listing?.status || 'available'
 
@@ -113,11 +201,32 @@ const ListingDetail = () => {
           </div>
 
           <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-            <img
-              src={listing.photo_url || 'https://placehold.co/900x520?text=Food+Listing'}
-              alt={listing.title || 'Listing'}
-              className="h-full min-h-72 w-full object-cover"
-            />
+            <Map
+              theme="light"
+              styles={{ light: mapStyles, dark: mapStyles }}
+              viewport={{ center: [pickupLng || 73.7997, pickupLat || 18.6298], zoom: 14 }}
+              loading={false}
+              className="h-full min-h-72 w-full"
+            >
+              <MapControls position="bottom-right" showZoom />
+
+              <MapMarker longitude={pickupLng || 73.7997} latitude={pickupLat || 18.6298}>
+                <MarkerContent>
+                  <div className="relative h-5 w-5 rounded-full border-2 border-white bg-blue-500 shadow">
+                    <div className="absolute -inset-1 rounded-full border border-blue-300/70" />
+                  </div>
+                  <MarkerLabel position="top">Pickup</MarkerLabel>
+                </MarkerContent>
+                <MarkerPopup>
+                  <div className="text-xs text-gray-700">
+                    <p className="font-semibold text-gray-900">Pickup location</p>
+                    <p>{listing.pickup_address || 'Address unavailable'}</p>
+                    <p>Lat: {Number(pickupLat || 0).toFixed(6)}</p>
+                    <p>Lng: {Number(pickupLng || 0).toFixed(6)}</p>
+                  </div>
+                </MarkerPopup>
+              </MapMarker>
+            </Map>
           </div>
         </div>
       </div>

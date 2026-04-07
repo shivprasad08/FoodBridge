@@ -227,103 +227,112 @@ const PostFoodForm = () => {
   return (
     <section>
       <PageHeader title="Post Food Listing" subtitle="Share surplus food and notify nearby NGOs instantly" />
-      <div className="mx-auto max-w-2xl px-4 py-4 md:px-6 md:py-6 pb-20 md:pb-6">
-      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-        {/* Food details */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-          <input type="text" value={title} onChange={e => setTitle(e.target.value)} required minLength={3}
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Food type / items *</label>
-          <input type="text" value={foodType} onChange={e => setFoodType(e.target.value)} required
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Estimated quantity *</label>
-          <input type="text" value={quantity} onChange={e => setQuantity(e.target.value)} required
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Number of portions *</label>
-          <input type="number" value={quantityNumber} onChange={e => setQuantityNumber(Number(e.target.value))} min={1} max={10000} required
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Food photo (optional)</label>
-          <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setPhotoFile(e.target.files[0])}
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)}
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-        </div>
-        {/* Pickup location */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Pickup address *</label>
-          <input type="text" value={pickupAddress} onChange={e => setPickupAddress(e.target.value)} required
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-          <div className="mt-1 text-xs text-gray-500">
-            {geocoding ? 'Looking up the address...' : addressHint}
+      <div className="mx-auto max-w-[1400px] px-4 py-4 md:px-6 md:py-6 pb-20 md:pb-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-8">
+        <Card className="p-5 md:p-6">
+          <h2 className="mb-4 text-base font-semibold text-gray-900">Food Details</h2>
+          <div className="space-y-4 md:space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} required minLength={3}
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Food type / items *</label>
+              <input type="text" value={foodType} onChange={e => setFoodType(e.target.value)} required
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Estimated quantity *</label>
+              <input type="text" value={quantity} onChange={e => setQuantity(e.target.value)} required
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Number of portions *</label>
+              <input type="number" value={quantityNumber} onChange={e => setQuantityNumber(Number(e.target.value))} min={1} max={10000} required
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Food photo (optional)</label>
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setPhotoFile(e.target.files[0])}
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)}
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
           </div>
-          {/* Advanced MapCN map preview and location picker */}
-          <Card className="w-full h-48 md:h-64 p-0 overflow-hidden mt-2 rounded-lg">
-            <Map
-              theme="light"
-              styles={{ light: mapStyles, dark: mapStyles }}
-              viewport={{ center: [pickupLng || 73.7997, pickupLat || 18.6298], zoom: 14 }}
-              onViewportChange={({ center }) => {
-                setPickupLng(center[0]);
-                setPickupLat(center[1]);
-              }}
-              loading={false}
-            >
-              <MapControls
-                position="bottom-right"
-                showZoom
-                showLocate
-                onLocate={handleLocate}
-              />
+        </Card>
 
-              <MapMarker
-                longitude={pickupLng || 73.7997}
-                latitude={pickupLat || 18.6298}
-                draggable
-                onDragEnd={handleMarkerDragEnd}
-              >
-                <MarkerContent>
-                  <div className="relative h-5 w-5 rounded-full border-2 border-white bg-blue-500 shadow">
-                    <div className="absolute -inset-1 rounded-full border border-blue-300/70" />
-                  </div>
-                  <MarkerLabel position="top">Pickup Point</MarkerLabel>
-                </MarkerContent>
-                <MarkerPopup>
-                  <div className="text-xs text-gray-700">
-                    <p className="font-semibold text-gray-900">Pickup location</p>
-                    <p>Lat: {Number(pickupLat || 0).toFixed(6)}</p>
-                    <p>Lng: {Number(pickupLng || 0).toFixed(6)}</p>
-                  </div>
-                </MarkerPopup>
-              </MapMarker>
-            </Map>
-          </Card>
-          <p className="mt-2 text-xs text-gray-500">
-            Drag the pin or use locate to set exact pickup coordinates: {Number(pickupLat || 0).toFixed(6)}, {Number(pickupLng || 0).toFixed(6)}
-          </p>
-        </div>
-        {/* Expiry time */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Food expires at *</label>
-          <input type="datetime-local" value={expiryTime} onChange={e => setExpiryTime(e.target.value)} required
-            className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
-          <div className="text-xs text-gray-400 mt-1">Min: 30 minutes from now, Max: 24 hours from now</div>
-        </div>
-        <button type="submit" disabled={loading} className="mt-4 w-full min-h-[44px] rounded-xl bg-primary px-4 py-3 text-base font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50">
-          {loading ? 'Posting...' : 'Post Food Now'}
-        </button>
-        {error && <div className="text-red-500 text-sm mt-2 text-center">{error}</div>}
+        <Card className="p-5 md:p-6">
+          <h2 className="mb-4 text-base font-semibold text-gray-900">Pickup & Expiry</h2>
+          <div className="space-y-4 md:space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pickup address *</label>
+              <input type="text" value={pickupAddress} onChange={e => setPickupAddress(e.target.value)} required
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+              <div className="mt-1 text-xs text-gray-500">
+                {geocoding ? 'Looking up the address...' : addressHint}
+              </div>
+              <Card className="w-full h-56 md:h-80 p-0 overflow-hidden mt-2 rounded-lg">
+                <Map
+                  theme="light"
+                  styles={{ light: mapStyles, dark: mapStyles }}
+                  viewport={{ center: [pickupLng || 73.7997, pickupLat || 18.6298], zoom: 14 }}
+                  onViewportChange={({ center }) => {
+                    setPickupLng(center[0]);
+                    setPickupLat(center[1]);
+                  }}
+                  loading={false}
+                >
+                  <MapControls
+                    position="bottom-right"
+                    showZoom
+                    showLocate
+                    onLocate={handleLocate}
+                  />
+
+                  <MapMarker
+                    longitude={pickupLng || 73.7997}
+                    latitude={pickupLat || 18.6298}
+                    draggable
+                    onDragEnd={handleMarkerDragEnd}
+                  >
+                    <MarkerContent>
+                      <div className="relative h-5 w-5 rounded-full border-2 border-white bg-blue-500 shadow">
+                        <div className="absolute -inset-1 rounded-full border border-blue-300/70" />
+                      </div>
+                      <MarkerLabel position="top">Pickup Point</MarkerLabel>
+                    </MarkerContent>
+                    <MarkerPopup>
+                      <div className="text-xs text-gray-700">
+                        <p className="font-semibold text-gray-900">Pickup location</p>
+                        <p>Lat: {Number(pickupLat || 0).toFixed(6)}</p>
+                        <p>Lng: {Number(pickupLng || 0).toFixed(6)}</p>
+                      </div>
+                    </MarkerPopup>
+                  </MapMarker>
+                </Map>
+              </Card>
+              <p className="mt-2 text-xs text-gray-500">
+                Drag the pin or use locate to set exact pickup coordinates: {Number(pickupLat || 0).toFixed(6)}, {Number(pickupLng || 0).toFixed(6)}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Food expires at *</label>
+              <input type="datetime-local" value={expiryTime} onChange={e => setExpiryTime(e.target.value)} required
+                className="w-full text-base border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary" />
+              <div className="text-xs text-gray-400 mt-1">Min: 30 minutes from now, Max: 24 hours from now</div>
+            </div>
+
+            <button type="submit" disabled={loading} className="mt-2 w-full min-h-[44px] rounded-xl bg-primary px-4 py-3 text-base font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50">
+              {loading ? 'Posting...' : 'Post Food Now'}
+            </button>
+            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+          </div>
+        </Card>
       </form>
       </div>
     </section>

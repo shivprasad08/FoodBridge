@@ -1,14 +1,22 @@
 
 import { NavLink } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  PlusCircle,
+  ClipboardList,
+  History,
+  User,
+  LogOut,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
 
 const navItems = [
-  { label: 'Overview',    icon: '📊', path: '/provider/dashboard' },
-  { label: 'Post Food',   icon: '➕', path: '/provider/post' },
-  { label: 'My Listings', icon: '📋', path: '/provider/listings' },
-  { label: 'History',     icon: '🕘', path: '/provider/history' },
-  { label: 'Profile',     icon: '👤', path: '/provider/profile' },
+  { label: 'Overview', icon: LayoutDashboard, path: '/provider/dashboard' },
+  { label: 'Post Food', icon: PlusCircle, path: '/provider/post' },
+  { label: 'My Listings', icon: ClipboardList, path: '/provider/listings' },
+  { label: 'History', icon: History, path: '/provider/history' },
+  { label: 'Profile', icon: User, path: '/provider/profile' },
 ];
 
 const ProviderSidebar = () => {
@@ -39,6 +47,7 @@ const ProviderSidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              aria-label={item.label}
               className={({ isActive }) => `
                 flex items-center gap-3 px-3 py-2.5
                 rounded-xl text-sm font-medium
@@ -48,7 +57,7 @@ const ProviderSidebar = () => {
                   : 'text-gray-600 hover:bg-gray-50'
                 }
               `}>
-              <span className="text-base">{item.icon}</span>
+              <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
               {item.label}
             </NavLink>
           ))}
@@ -61,7 +70,7 @@ const ProviderSidebar = () => {
             className="flex items-center gap-3 px-3 py-2.5
                        rounded-xl text-sm text-red-500
                        hover:bg-red-50 w-full transition-colors min-h-[44px]">
-            <span>Door</span>
+            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
             Logout
           </button>
         </div>
@@ -74,6 +83,7 @@ const ProviderSidebar = () => {
             <NavLink
               key={item.path}
               to={item.path}
+              aria-label={item.label}
               className={({ isActive }) => `
                 flex-1 flex flex-col items-center justify-center
                 py-2.5 text-xs font-medium transition-colors
@@ -83,7 +93,7 @@ const ProviderSidebar = () => {
                   : 'text-gray-500'
                 }
               `}>
-              <span className="text-xl mb-0.5">{item.icon}</span>
+              <item.icon className="h-5 w-5 mb-0.5" aria-hidden="true" />
               <span className="truncate px-1">{item.label}</span>
             </NavLink>
           ))}

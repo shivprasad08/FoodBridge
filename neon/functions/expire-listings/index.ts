@@ -5,7 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 serve(async (req) => {
   try {
-    // Verify the request is from Supabase cron
+    // Verify the request is from Neon cron
     const authHeader = req.headers.get('Authorization')
     const cronSecret = Deno.env.get('CRON_SECRET')
     
@@ -17,16 +17,16 @@ serve(async (req) => {
     }
 
     // Service role client — bypasses RLS
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const neon = createClient(
+      Deno.env.get('NEON_URL')!,
+      Deno.env.get('NEON_SERVICE_ROLE_KEY')!
     )
 
     const now = new Date().toISOString()
 
     // Step 1: Find all expired available listings
     const { data: expiredListings, error: fetchError } =
-      await supabase
+      await neon
         .from('food_listings')
         .select(`
           id,
@@ -59,7 +59,7 @@ serve(async (req) => {
     const listingIds = expiredListings.map(l => l.id)
 
     // Step 2: Update listings to 'expired'
-    const { error: listingUpdateError } = await supabase
+    const { error: listingUpdateError } = await neon
       .from('food_listings')
       .update({ status: 'expired' })
       .in('id', listingIds)
@@ -76,7 +76,7 @@ serve(async (req) => {
       .map(t => t.id)
 
     if (taskIds.length > 0) {
-      const { error: taskUpdateError } = await supabase
+      const { error: taskUpdateError } = await neon
         .from('tasks')
         .update({ status: 'expired' })
         .in('id', taskIds)
@@ -96,7 +96,7 @@ serve(async (req) => {
     }))
 
     if (notifications.length > 0) {
-      const { error: notifError } = await supabase
+      const { error: notifError } = await neon
         .from('notifications')
         .insert(notifications)
 

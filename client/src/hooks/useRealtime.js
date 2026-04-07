@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { neon } from '../lib/neonClient'
 
 // ─────────────────────────────────────────────
 // useRealtime
@@ -29,7 +29,7 @@ const useRealtime = (table, event, callback, filter = null) => {
         `${filter.column}=eq.${filter.value}`
     }
 
-    const channel = supabase
+    const channel = neon
       .channel(`realtime-${table}-${event}-${Date.now()}`)
       .on('postgres_changes', channelConfig, (payload) => {
         callbackRef.current(payload)
@@ -37,7 +37,7 @@ const useRealtime = (table, event, callback, filter = null) => {
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      neon.removeChannel(channel)
     }
   }, [table, event, filter?.value])
 }
