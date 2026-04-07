@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const roles = [
   { key: 'provider', icon: '🏨', title: 'Provider', desc: 'Hotels, events, restaurants' },
   { key: 'recipient', icon: '🏠', title: 'Recipient', desc: 'NGO / Shelter' },
+  { key: 'admin', icon: '🛡', title: 'Admin', desc: 'Restricted access (requires code)' },
 ];
 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -20,6 +21,7 @@ const Signup = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [receivingHours, setReceivingHours] = useState(days.map(() => ({ start: '', end: '', closed: false })));
+  const [adminCode, setAdminCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,6 +43,7 @@ const Signup = () => {
     if (password !== confirmPassword) return 'Passwords do not match.';
     if (!phone.match(/^\d{10}$/)) return 'Phone must be 10 digits.';
     if (!address) return 'Address is required.';
+    if (selectedRole === 'admin' && !adminCode.trim()) return 'Admin access code is required.';
     if (selectedRole === 'recipient') {
       if (!receivingHours.some(h => !h.closed)) return 'At least one receiving day must be open.';
     }
@@ -63,6 +66,7 @@ const Signup = () => {
         full_name: fullName,
         phone,
         address,
+        admin_code: selectedRole === 'admin' ? adminCode.trim() : undefined,
       });
       setStep('success');
     } catch (err) {
@@ -192,6 +196,19 @@ const Signup = () => {
                   />
                 </div>
               </div>
+              {selectedRole === 'admin' && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Admin Access Code</label>
+                  <input
+                    type="password"
+                    placeholder="Enter admin access code"
+                    value={adminCode}
+                    onChange={e => setAdminCode(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary text-base"
+                    required
+                  />
+                </div>
+              )}
               {selectedRole === 'recipient' && (
                 <div className="mt-4">
                   <div className="font-semibold mb-2">Receiving hours</div>
@@ -252,9 +269,15 @@ const Signup = () => {
               <span className="text-3xl mb-4">✅</span>
               <h2 className="text-xl font-bold text-primary mb-2">Account Created!</h2>
               <div className="text-gray-700 text-center mb-4">
-                Your account is pending verification by our FoodBridge admin team.<br />
-                This usually takes a few hours.<br />
-                You'll be able to login once approved.
+                {selectedRole === 'admin'
+                  ? 'Admin account created successfully. You can now sign in.'
+                  : (
+                    <>
+                      Your account is pending verification by our FoodBridge admin team.<br />
+                      This usually takes a few hours.<br />
+                      You'll be able to login once approved.
+                    </>
+                  )}
               </div>
               <a
                 href="/login"

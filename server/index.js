@@ -9,6 +9,7 @@ const listingsRouter = require('./routes/listings')
 const tasksRouter    = require('./routes/tasks')
 const notificationsRouter = require('./routes/notifications')
 const uploadsRouter  = require('./routes/uploads')
+const adminRouter = require('./routes/admin')
 const { initializeDatabase } = require('./db/neon')
 
 const app  = express()
@@ -34,6 +35,7 @@ app.use('/api/listings', listingsRouter)
 app.use('/api/tasks', tasksRouter)
 app.use('/api/notifications', notificationsRouter)
 app.use('/api/uploads', uploadsRouter)
+app.use('/api/admin', adminRouter)
 
 // Health check
 app.get('/api/health', (req, res) => {

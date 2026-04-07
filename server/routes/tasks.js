@@ -5,6 +5,14 @@ const { pool, initializeDatabase } = require('../db/neon')
 
 const router = express.Router()
 
+const insertAuditLog = async ({ taskId, oldStatus, newStatus, changedBy, note = null, client = pool }) => {
+  await client.query(
+    `INSERT INTO audit_logs (task_id, old_status, new_status, changed_by, note)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [taskId, oldStatus, newStatus, changedBy, note]
+  )
+}
+
 const fetchTaskWithJoins = async (taskId) => {
   const result = await pool.query(
     `SELECT
@@ -54,10 +62,10 @@ router.get('/', requireAuth, async (req, res) => {
   const { profile } = req
   const { status, limit = 20, offset = 0 } = req.query
 
-  if (!['recipient', 'admin'].includes(profile.role)) {
+  if (!['provider', 'recipient', 'admin'].includes(profile.role)) {
     return res.status(403).json({
       error: true,
-      message: 'Access denied. Required role: recipient or admin',
+      message: 'Access denied. Required role: provider, recipient or admin',
     })
   }
 
@@ -70,6 +78,9 @@ router.get('/', requireAuth, async (req, res) => {
     if (profile.role === 'recipient') {
       params.push(profile.id)
       filters.push(`t.ngo_id = $${params.length}`)
+    } else if (profile.role === 'provider') {
+      params.push(profile.id)
+      filters.push(`fl.provider_id = $${params.length}`)
     }
 
     if (status) {
@@ -190,6 +201,15 @@ router.patch('/:id/claim', requireAuth, requireRole('recipient'), async (req, re
       ]
     )
 
+    await insertAuditLog({
+      taskId: updatedTask.id,
+      oldStatus: 'available',
+      newStatus: 'claimed',
+      changedBy: profile.id,
+      note: 'Task claimed by NGO',
+      client,
+    })
+
     await client.query('COMMIT')
 
     const task = await fetchTaskWithJoins(id)
@@ -257,6 +277,14 @@ router.patch('/:id/pickup', requireAuth, requireRole('recipient'), async (req, r
       )
     }
 
+    await insertAuditLog({
+      taskId: id,
+      oldStatus: 'claimed',
+      newStatus: 'picked_up',
+      changedBy: profile.id,
+      note: 'Marked as picked up',
+    })
+
     const task = await fetchTaskWithJoins(updatedRes.rows[0].id)
     res.json({ data: task, error: false })
   } catch (err) {
@@ -313,6 +341,14 @@ router.patch('/:id/deliver', requireAuth, requireRole('recipient'), async (req, 
         ]
       )
     }
+
+    await insertAuditLog({
+      taskId: id,
+      oldStatus: 'picked_up',
+      newStatus: 'delivered',
+      changedBy: profile.id,
+      note: 'Marked as delivered',
+    })
 
     const task = await fetchTaskWithJoins(id)
     res.json({ data: task, error: false })
@@ -374,6 +410,14 @@ router.patch('/:id/confirm', requireAuth, requireRole('recipient'), async (req, 
         ]
       )
     }
+
+    await insertAuditLog({
+      taskId: id,
+      oldStatus: 'delivered',
+      newStatus: 'confirmed',
+      changedBy: profile.id,
+      note: 'Receipt confirmed',
+    })
 
     const task = await fetchTaskWithJoins(id)
     res.json({ data: task, error: false, message: 'Confirmed!' })

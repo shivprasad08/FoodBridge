@@ -17,12 +17,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     )
   }
 
-  // Not logged in → go to login
+  // Not logged in -> go to login
   if (!user || !profile) {
     return <Navigate to="/login" replace />
   }
 
-  // Logged in but wrong role → go to unauthorized
+  // Logged in but wrong role -> go to unauthorized
   if (allowedRoles && !allowedRoles.includes(profile.role)) {
     return <Navigate to="/unauthorized" replace />
   }

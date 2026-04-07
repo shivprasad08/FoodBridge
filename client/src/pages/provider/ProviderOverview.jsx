@@ -1,68 +1,87 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { apiFetch } from '../../lib/api'
+import PageHeader from '../../components/PageHeader'
+import { StatCardSkeleton } from '../../components/Skeleton'
+import EmptyState from '../../components/EmptyState'
+import { useToast } from '../../context/ToastContext'
 
 const ProviderOverview = () => {
-  const { profile } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const navigate = useNavigate()
+  const { toast } = useToast()
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     const fetchStats = async () => {
-      setLoading(true);
+      setLoading(true)
       try {
-        const session = JSON.parse(sessionStorage.getItem('supabaseSession'));
-        const res = await fetch('http://localhost:3001/api/listings/stats', {
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.message);
-        setStats(data.data);
+        const payload = await apiFetch('/api/listings/stats')
+        setStats(payload.data)
       } catch (err) {
-        setError(err.message);
+        const message = err.message || 'Unable to load stats'
+        setError(message)
+        toast.error(message)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-    fetchStats();
-  }, []);
+    }
+    fetchStats()
+  }, [toast])
 
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Provider Overview</h1>
-      {loading ? (
-        <div>Loading stats...</div>
-      ) : error ? (
-        <div className="text-red-500">{error}</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-lg font-semibold text-gray-700 mb-2">Total Posted</div>
-            <div className="text-3xl font-bold text-primary mb-1">{stats.total_posted}</div>
-            <div className="text-sm text-gray-400">All time</div>
-          </div>
-          <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-lg font-semibold text-gray-700 mb-2">Completed</div>
-            <div className="text-3xl font-bold text-primary mb-1">{stats.total_completed}</div>
-            <div className="text-sm text-gray-400">Delivered</div>
-          </div>
-          <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-lg font-semibold text-gray-700 mb-2">Active</div>
-            <div className="text-3xl font-bold text-primary mb-1">{stats.total_active}</div>
-            <div className="text-sm text-gray-400">Live now</div>
-          </div>
-          <div className="bg-white rounded-xl shadow p-6 text-center">
-            <div className="text-lg font-semibold text-gray-700 mb-2">Portions</div>
-            <div className="text-3xl font-bold text-primary mb-1">{stats.total_portions}</div>
-            <div className="text-sm text-gray-400">Donated</div>
-          </div>
-        </div>
-      )}
-      {/* TODO: Add active listings preview and activity feed */}
-    </div>
-  );
-};
+    <section>
+      <PageHeader
+        title="Provider Overview"
+        subtitle="Track listing impact and active food donations"
+        action={
+          <button
+            type="button"
+            onClick={() => navigate('/provider/post')}
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark"
+          >
+            Post Food
+          </button>
+        }
+      />
 
-export default ProviderOverview;
+      <div className="px-4 py-4 md:px-6 md:py-6">
+        {loading ? (
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, index) => (
+              <StatCardSkeleton key={index} />
+            ))}
+          </div>
+        ) : error ? (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+        ) : !stats ? (
+          <EmptyState
+            icon="Chart"
+            title="No stats available"
+            description="Your overview metrics will appear after you start posting listings."
+            actionLabel="Post Food Now"
+            onAction={() => navigate('/provider/post')}
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="Total Posted" value={stats.total_posted} note="All time" />
+            <StatCard label="Completed" value={stats.total_completed} note="Delivered" />
+            <StatCard label="Active" value={stats.total_active} note="Live now" />
+            <StatCard label="Portions" value={stats.total_portions} note="Donated" />
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
+const StatCard = ({ label, value, note }) => (
+  <article className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <p className="text-sm font-medium text-gray-600">{label}</p>
+    <p className="mt-2 text-3xl font-bold text-primary">{value || 0}</p>
+    <p className="mt-1 text-xs text-gray-400">{note}</p>
+  </article>
+)
+
+export default ProviderOverview

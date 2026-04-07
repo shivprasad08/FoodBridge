@@ -16,7 +16,8 @@ const rank = {
   completed: 4,
 }
 
-const TaskStatusTracker = ({ status }) => {
+const TaskStatusTracker = ({ task, status: statusProp }) => {
+  const status = statusProp || task?.status || 'available'
   const level = rank[status] ?? 0
 
   return (
@@ -35,6 +36,30 @@ const TaskStatusTracker = ({ status }) => {
           )
         })}
       </div>
+
+      {task?.status !== 'available' && task?.status !== 'claimed' && task?.pickup_photo_url ? (
+        <div className="mt-4">
+          <p className="mb-2 text-xs text-gray-400">Pickup proof</p>
+          <img
+            src={task.pickup_photo_url}
+            alt="Pickup proof"
+            className="h-24 w-32 cursor-pointer rounded-lg border border-gray-100 object-cover hover:opacity-90"
+            onClick={() => window.open(task.pickup_photo_url, '_blank', 'noopener,noreferrer')}
+          />
+        </div>
+      ) : null}
+
+      {task?.receipt_photo_url ? (
+        <div className="mt-4">
+          <p className="mb-2 text-xs text-gray-400">Receipt proof</p>
+          <img
+            src={task.receipt_photo_url}
+            alt="Receipt proof"
+            className="h-24 w-32 cursor-pointer rounded-lg border border-gray-100 object-cover hover:opacity-90"
+            onClick={() => window.open(task.receipt_photo_url, '_blank', 'noopener,noreferrer')}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

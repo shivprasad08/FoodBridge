@@ -136,6 +136,19 @@ router.post('/', requireAuth, requireRole('provider'), async (req, res) => {
       [newListing.id]
     )
 
+    const taskRes = await pool.query(
+      `SELECT id FROM tasks WHERE food_listing_id = $1 LIMIT 1`,
+      [newListing.id]
+    )
+
+    if (taskRes.rowCount) {
+      await pool.query(
+        `INSERT INTO audit_logs (task_id, old_status, new_status, changed_by, note)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [taskRes.rows[0].id, null, 'available', profile.id, 'Listing posted']
+      )
+    }
+
     findAndNotifyNearbyNGOs(newListing).catch((err) =>
       console.error('[Listings] Matching error:', err.message)
     )
@@ -242,6 +255,14 @@ router.patch('/:id/cancel', requireAuth, requireRole('provider'), async (req, re
        WHERE food_listing_id = $1`,
       [id]
     )
+
+    if (taskRes.rowCount > 0) {
+      await pool.query(
+        `INSERT INTO audit_logs (task_id, old_status, new_status, changed_by, note)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [taskRes.rows[0].id, taskRes.rows[0].status, 'cancelled', profile.id, 'Cancelled by provider']
+      )
+    }
 
     res.json({
       data: updatedListingRes.rows[0],

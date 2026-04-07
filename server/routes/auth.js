@@ -9,6 +9,7 @@ const router = express.Router()
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-me'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
+const ADMIN_SIGNUP_KEY = process.env.ADMIN_SIGNUP_KEY || ''
 
 const sanitizeProfile = (row) => ({
   id: row.id,
@@ -45,6 +46,7 @@ router.post('/signup', async (req, res) => {
     full_name,
     phone = null,
     address = null,
+    admin_code = null,
   } = req.body
 
   if (!email || !password || !role || !full_name) {
@@ -66,6 +68,22 @@ router.post('/signup', async (req, res) => {
       error: true,
       message: 'Invalid role',
     })
+  }
+
+  if (role === 'admin') {
+    if (!ADMIN_SIGNUP_KEY) {
+      return res.status(403).json({
+        error: true,
+        message: 'Admin signup is disabled',
+      })
+    }
+
+    if (!admin_code || admin_code !== ADMIN_SIGNUP_KEY) {
+      return res.status(403).json({
+        error: true,
+        message: 'Invalid admin access code',
+      })
+    }
   }
 
   try {

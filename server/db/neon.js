@@ -101,10 +101,24 @@ const initializeDatabase = async () => {
     )
   `)
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+      old_status TEXT,
+      new_status TEXT,
+      changed_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+      note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
   await pool.query('CREATE INDEX IF NOT EXISTS idx_food_listings_provider_id ON food_listings(provider_id)')
   await pool.query('CREATE INDEX IF NOT EXISTS idx_food_listings_status ON food_listings(status)')
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tasks_food_listing_id ON tasks(food_listing_id)')
   await pool.query('CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)')
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_audit_logs_task_id ON audit_logs(task_id)')
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC)')
 
   initialized = true
 }

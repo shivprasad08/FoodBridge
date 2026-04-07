@@ -82,7 +82,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const signUp = async ({ email, password, role, full_name, phone, address }) => {
+  const signUp = async ({ email, password, role, full_name, phone, address, admin_code }) => {
     const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {
@@ -95,6 +95,7 @@ export const AuthProvider = ({ children }) => {
         full_name,
         phone,
         address,
+        admin_code,
       }),
     })
 

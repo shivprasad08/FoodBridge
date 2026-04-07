@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Map, MapMarker, MarkerContent } from '../../components/ui/map';
 import { Card } from '../../components/ui/card';
 import { useAuth } from '../../context/AuthContext';
+import PageHeader from '../../components/PageHeader';
+import { useToast } from '../../context/ToastContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
 const getStoredSession = () => {
@@ -35,9 +37,9 @@ const PostFoodForm = () => {
   const [expiryTime, setExpiryTime] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [addressHint, setAddressHint] = useState('');
+  const { toast } = useToast();
 
   // MapCN integration for map preview and location selection
 
@@ -166,7 +168,7 @@ const PostFoodForm = () => {
         throw new Error(data.message || 'Failed to create listing');
       }
 
-      setSuccess(true);
+      toast.success('Food posted! Notifying nearby NGOs...');
       setTitle('');
       setFoodType('');
       setQuantity('');
@@ -178,14 +180,16 @@ const PostFoodForm = () => {
       // TODO: Navigate to listings after success
     } catch (err) {
       setError(err?.message || 'Failed to post food listing');
+      toast.error(err?.message || 'Failed to post food listing');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Post Food Listing</h1>
+    <section>
+      <PageHeader title="Post Food Listing" subtitle="Share surplus food and notify nearby NGOs instantly" />
+      <div className="mx-auto max-w-2xl px-4 py-4 md:px-6 md:py-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Food details */}
         <div>
@@ -249,13 +253,13 @@ const PostFoodForm = () => {
             className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
           <div className="text-xs text-gray-400 mt-1">Min: 30 minutes from now, Max: 24 hours from now</div>
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-primary text-white rounded-lg py-2 font-semibold mt-2 transition hover:bg-primary-dark disabled:bg-primary-light text-lg">
+        <button type="submit" disabled={loading} className="mt-2 w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50">
           {loading ? 'Posting...' : 'Post Food Now'}
         </button>
         {error && <div className="text-red-500 text-sm mt-2 text-center">{error}</div>}
-        {success && <div className="text-green-600 text-sm mt-2 text-center">Food posted! Notifying nearby NGOs...</div>}
       </form>
-    </div>
+      </div>
+    </section>
   );
 };
 

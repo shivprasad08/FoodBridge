@@ -4,6 +4,11 @@ import useTask from '../../hooks/useTask'
 import { uploadFoodPhoto } from '../../lib/api'
 import StatusBadge from '../../components/StatusBadge'
 import TaskStatusTracker from '../../components/TaskStatusTracker'
+import TaskStatusBar from '../../components/TaskStatusBar'
+import useRealtime from '../../hooks/useRealtime'
+import { useToast } from '../../context/ToastContext'
+import PageHeader from '../../components/PageHeader'
+import { TaskCardSkeleton } from '../../components/Skeleton'
 
 const PickupDetail = () => {
   const { taskId } = useParams()
@@ -11,7 +16,7 @@ const PickupDetail = () => {
   const [task, setTask] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const { toast } = useToast()
 
   const loadTask = async () => {
     try {
@@ -19,6 +24,7 @@ const PickupDetail = () => {
       setTask(data)
     } catch (err) {
       setError(err.message || 'Unable to load task')
+      toast.error(err.message || 'Unable to load task')
     }
   }
 
@@ -26,19 +32,25 @@ const PickupDetail = () => {
     loadTask()
   }, [taskId])
 
+  useRealtime('tasks', 'UPDATE', (payload) => {
+    if (payload.new?.id === task?.id) {
+      setTask(prev => ({ ...(prev || {}), ...payload.new }))
+    }
+  })
+
   const handlePickup = async (event) => {
     try {
       setBusy(true)
       setError('')
-      setSuccess('')
       const file = event.target.files?.[0]
       let pickupUrl = null
       if (file) pickupUrl = await uploadFoodPhoto(file)
       await markPickedUp(task.id, pickupUrl)
-      setSuccess('Task marked as picked up.')
+      toast.success('Marked as picked up. Drive safe!')
       await loadTask()
     } catch (err) {
       setError(err.message || 'Unable to update pickup')
+      toast.error(err.message || 'Unable to update pickup')
     } finally {
       setBusy(false)
       event.target.value = ''
@@ -49,12 +61,12 @@ const PickupDetail = () => {
     try {
       setBusy(true)
       setError('')
-      setSuccess('')
       await markDelivered(task.id)
-      setSuccess('Task marked as delivered.')
+      toast.success('Marked as delivered.')
       await loadTask()
     } catch (err) {
       setError(err.message || 'Unable to mark delivered')
+      toast.error(err.message || 'Unable to mark delivered')
     } finally {
       setBusy(false)
     }
@@ -64,15 +76,15 @@ const PickupDetail = () => {
     try {
       setBusy(true)
       setError('')
-      setSuccess('')
       const file = event.target.files?.[0]
       let receiptUrl = null
       if (file) receiptUrl = await uploadFoodPhoto(file)
       await confirmReceipt(task.id, receiptUrl)
-      setSuccess('Task confirmed and completed.')
+      toast.success('Receipt confirmed! Thank you for feeding lives.')
       await loadTask()
     } catch (err) {
       setError(err.message || 'Unable to confirm receipt')
+      toast.error(err.message || 'Unable to confirm receipt')
     } finally {
       setBusy(false)
       event.target.value = ''
@@ -80,54 +92,70 @@ const PickupDetail = () => {
   }
 
   if (!task) {
-    return <section className="p-6 text-sm text-gray-500">Loading task...</section>
+    return (
+      <section>
+        <PageHeader title="Pickup Detail" subtitle="Follow every task stage" />
+        <div className="px-4 py-4 md:px-6 md:py-6">
+          <TaskCardSkeleton />
+        </div>
+      </section>
+    )
   }
 
   return (
-    <section className="space-y-5 p-6">
-      <div className="flex items-center justify-between">
-        <Link to="/recipient/pickups" className="text-sm text-emerald-700 hover:underline">Back to pickups</Link>
-        <StatusBadge status={task.status} />
-      </div>
+    <section>
+      <PageHeader
+        title={task.food_listing?.title || 'Pickup Detail'}
+        subtitle="Update pickup and delivery progress in real time"
+        action={<Link to="/recipient/pickups" className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50">Back to pickups</Link>}
+      />
 
-      {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      {success ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p> : null}
+      <div className="space-y-5 px-4 py-4 md:px-6 md:py-6">
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm text-gray-600">Task progress</p>
+            <StatusBadge status={task.status} />
+          </div>
+          <TaskStatusBar currentStatus={task.status} />
+          <TaskStatusTracker task={task} />
+        </div>
 
-      <TaskStatusTracker status={task.status} />
+        {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h1 className="text-xl font-bold text-gray-900">{task.food_listing?.title || 'Food Listing'}</h1>
-        <p className="mt-1 text-sm text-gray-600">{task.food_listing?.pickup_address}</p>
-        <p className="mt-2 text-sm text-gray-600">Provider: {task.provider?.full_name} ({task.provider?.phone || 'No phone'})</p>
-      </div>
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-bold text-gray-900">{task.food_listing?.title || 'Food Listing'}</h2>
+          <p className="mt-1 text-sm text-gray-600">{task.food_listing?.pickup_address}</p>
+          <p className="mt-2 text-sm text-gray-600">Provider: {task.provider?.full_name} ({task.provider?.phone || 'No phone'})</p>
+        </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-gray-900">Task Actions</h2>
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-900">Task Actions</h2>
 
-        {task.status === 'claimed' ? (
-          <label className="mt-4 inline-flex cursor-pointer items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-            {busy ? 'Uploading...' : 'Upload pickup proof & mark picked up'}
-            <input type="file" accept="image/*" className="hidden" onChange={handlePickup} disabled={busy} />
-          </label>
-        ) : null}
+          {task.status === 'claimed' ? (
+            <label className="mt-4 inline-flex cursor-pointer items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark">
+              {busy ? 'Uploading...' : 'Upload pickup proof and mark picked up'}
+              <input type="file" accept="image/*" className="hidden" onChange={handlePickup} disabled={busy} />
+            </label>
+          ) : null}
 
-        {task.status === 'picked_up' ? (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={handleDeliver}
-            className="mt-4 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-60"
-          >
-            {busy ? 'Updating...' : 'Mark Delivered'}
-          </button>
-        ) : null}
+          {task.status === 'picked_up' ? (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={handleDeliver}
+              className="mt-4 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? 'Updating...' : 'Mark as Delivered'}
+            </button>
+          ) : null}
 
-        {task.status === 'delivered' ? (
-          <label className="mt-4 inline-flex cursor-pointer items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            {busy ? 'Uploading...' : 'Upload receipt & confirm'}
-            <input type="file" accept="image/*" className="hidden" onChange={handleConfirm} disabled={busy} />
-          </label>
-        ) : null}
+          {task.status === 'delivered' ? (
+            <label className="mt-4 inline-flex cursor-pointer items-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-dark">
+              {busy ? 'Uploading...' : 'Upload receipt and confirm'}
+              <input type="file" accept="image/*" className="hidden" onChange={handleConfirm} disabled={busy} />
+            </label>
+          ) : null}
+        </div>
       </div>
     </section>
   )

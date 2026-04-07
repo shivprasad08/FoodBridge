@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useNotifications from '../hooks/useNotifications'
+import EmptyState from './EmptyState'
+import { NotificationSkeleton } from './Skeleton'
 
 const NotificationBell = () => {
   const [open, setOpen] = useState(false)
@@ -8,6 +10,7 @@ const NotificationBell = () => {
   const {
     notifications,
     unreadCount,
+    loading,
     markAsRead,
     markAllAsRead
   } = useNotifications()
@@ -75,11 +78,18 @@ const NotificationBell = () => {
             </div>
 
             {/* Notification list */}
-            {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center
-                              text-sm text-gray-400">
-                No notifications yet
+            {loading ? (
+              <div>
+                {[...Array(3)].map((_, index) => (
+                  <NotificationSkeleton key={index} />
+                ))}
               </div>
+            ) : notifications.length === 0 ? (
+              <EmptyState
+                icon="Bell"
+                title="No notifications yet"
+                description="You'll be notified when food is posted near you."
+              />
             ) : (
               notifications.map(notif => (
                 <NotificationItem
