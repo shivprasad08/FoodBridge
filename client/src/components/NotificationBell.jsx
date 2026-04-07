@@ -57,39 +57,42 @@ const NotificationBell = () => {
             onClick={() => setOpen(false)}
           />
 
-          {/* Panel - fixed on mobile (breaks out of parent), absolute on desktop */}
+          {/* Panel - centered on both mobile and desktop */}
           <div
             ref={dropdownRef}
             className="fixed md:absolute
                       bottom-20 md:bottom-auto md:top-full
-                      left-4 right-4 md:left-auto md:right-0
-                      md:mt-2
+                      left-1/2 -translate-x-1/2
+                      md:left-1/2 md:-translate-x-1/2
+                      md:mt-2 md:w-80
                       z-20
-                      w-auto md:w-80
                       bg-white shadow-lg md:shadow-xl rounded-lg
                       border border-gray-100
+                      max-h-96
                       overflow-hidden
-                      max-h-96">
+                      flex flex-col
+                      w-[calc(100%-2rem)]">
 
             {/* Header */}
             <div className="flex items-center justify-between
                             px-4 py-3 border-b border-gray-100
-                            bg-white sticky top-0 z-10">
-              <h3 className="font-medium text-gray-800">
+                            bg-white flex-shrink-0 gap-2">
+              <h3 className="font-medium text-gray-800 flex-1 min-w-0">
                 Notifications
               </h3>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
                   className="text-xs text-primary
-                             hover:underline min-h-[44px]">
+                             hover:underline whitespace-nowrap
+                             flex-shrink-0">
                   Mark all read
                 </button>
               )}
             </div>
 
             {/* Notification list - scrollable */}
-            <div className="max-h-80 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {loading ? (
                 <div>
                   {[...Array(3)].map((_, index) => (
@@ -148,28 +151,26 @@ const NotificationItem = ({ notification, onRead, onNavigate }) => {
       onClick={handleClick}
       className={`px-4 py-3 border-b border-gray-50
                   cursor-pointer hover:bg-gray-50
-                  transition-colors min-h-[44px] flex items-center
+                  transition-colors min-h-[44px] flex gap-3
                   ${!notification.is_read ? 'bg-green-50' : ''}`}>
-      <div className="flex gap-3 flex-1">
-        <span className="text-base flex-shrink-0 font-medium text-gray-500">
-          {icons[notification.type] || 'Bell'}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm leading-snug
-                         ${!notification.is_read
-                           ? 'text-gray-800 font-medium'
-                           : 'text-gray-600'}`}>
-            {notification.message}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            {formatTimeAgo(notification.created_at)}
-          </p>
-        </div>
-        {!notification.is_read && (
-          <div className="w-2 h-2 bg-primary rounded-full
-                          flex-shrink-0 mt-1" />
-        )}
+      <span className="text-base flex-shrink-0 font-medium text-gray-500 pt-0.5">
+        {icons[notification.type] || 'Bell'}
+      </span>
+      <div className="flex-1 min-w-0 text-sm">
+        <p className={`leading-snug break-words
+                       ${!notification.is_read
+                         ? 'text-gray-800 font-medium'
+                         : 'text-gray-600'}`}>
+          {notification.message}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          {formatTimeAgo(notification.created_at)}
+        </p>
       </div>
+      {!notification.is_read && (
+        <div className="w-2 h-2 bg-primary rounded-full
+                        flex-shrink-0 mt-1" />
+      )}
     </div>
   )
 }
