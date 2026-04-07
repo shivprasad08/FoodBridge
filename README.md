@@ -144,5 +144,3 @@ npm run verify
 - DB tables are initialized automatically on server startup.
 - If DB env vars are missing, auth and DB-backed flows will fail.
 - Map rendering uses OpenStreetMap tiles and can depend on network availability.
-
-
